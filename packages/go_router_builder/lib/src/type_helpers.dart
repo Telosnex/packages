@@ -227,7 +227,7 @@ String compareField(
 String enumMapName(InterfaceType type) => '_\$${type.element.name}EnumMap';
 
 /// Gets the name of the `const` map generated to help encode [Json] types.
-String jsonMapName(InterfaceType type) => type.element.name;
+String jsonMapName(InterfaceType type) => type.element.name!;
 
 String _stateValueAccess(
   FormalParameterElement element,
@@ -303,7 +303,7 @@ class _TypeHelperBigInt extends _TypeHelperWithHelper {
 
   @override
   bool _matchesType(DartType type) =>
-      const TypeChecker.fromRuntime(BigInt).isAssignableFromType(type);
+      const TypeChecker.typeNamed(BigInt).isAssignableFromType(type);
 }
 
 class _TypeHelperBool extends _TypeHelperWithHelper {
@@ -343,7 +343,7 @@ class _TypeHelperDateTime extends _TypeHelperWithHelper {
 
   @override
   bool _matchesType(DartType type) =>
-      const TypeChecker.fromRuntime(DateTime).isAssignableFromType(type);
+      const TypeChecker.typeNamed(DateTime).isAssignableFromType(type);
 }
 
 class _TypeHelperDouble extends _TypeHelperWithHelper {
@@ -472,13 +472,13 @@ class _TypeHelperExtensionType extends _TypeHelper {
         representationType.isDartCoreNum ||
         representationType.isDartCoreBool ||
         representationType.isEnum ||
-        const TypeChecker.fromRuntime(
+        const TypeChecker.typeNamed(
           BigInt,
         ).isAssignableFromType(representationType) ||
-        const TypeChecker.fromRuntime(
+        const TypeChecker.typeNamed(
           DateTime,
         ).isAssignableFromType(representationType) ||
-        const TypeChecker.fromRuntime(
+        const TypeChecker.typeNamed(
           Uri,
         ).isAssignableFromType(representationType);
   }
@@ -566,7 +566,7 @@ class _TypeHelperUri extends _TypeHelperWithHelper {
 
   @override
   bool _matchesType(DartType type) =>
-      const TypeChecker.fromRuntime(Uri).isAssignableFromType(type);
+      const TypeChecker.typeNamed(Uri).isAssignableFromType(type);
 }
 
 class _TypeHelperIterable extends _TypeHelperWithHelper {
@@ -606,7 +606,7 @@ class _TypeHelperIterable extends _TypeHelperWithHelper {
       // get correct type for iterable
       String iterableCaster = '';
       String fallBack = '';
-      if (const TypeChecker.fromRuntime(
+      if (const TypeChecker.typeNamed(
         List,
       ).isAssignableFromType(parameterElement.type)) {
         iterableCaster += '.toList()';
@@ -614,7 +614,7 @@ class _TypeHelperIterable extends _TypeHelperWithHelper {
             !parameterElement.hasDefaultValue) {
           fallBack = '?? const []';
         }
-      } else if (const TypeChecker.fromRuntime(
+      } else if (const TypeChecker.typeNamed(
         Set,
       ).isAssignableFromType(parameterElement.type)) {
         iterableCaster += '.toSet()';
@@ -657,7 +657,7 @@ $fieldName$nullAwareAccess.map((e) => e.toString()).toList()''';
 
   @override
   bool _matchesType(DartType type) =>
-      const TypeChecker.fromRuntime(Iterable).isAssignableFromType(type);
+      const TypeChecker.typeNamed(Iterable).isAssignableFromType(type);
 
   @override
   String _compare(String value1, String value2) =>
@@ -783,10 +783,10 @@ class _TypeHelperJson extends _TypeHelperWithHelper {
     }
 
     final FunctionType functionType = secondParam.type as FunctionType;
-    if (functionType.parameters.length != 1 ||
+    if (functionType.formalParameters.length != 1 ||
         functionType.returnType.getDisplayString() !=
-            type.element.typeParameters.first.getDisplayString() ||
-        functionType.parameters[0].type.getDisplayString() != 'Object?') {
+            type.element.typeParameters.first.name ||
+        functionType.formalParameters[0].type.getDisplayString() != 'Object?') {
       throw InvalidGenerationSourceError(
         'The parameter type '
         '`${type.getDisplayString(withNullability: false)}` not have a supported fromJson definition.',

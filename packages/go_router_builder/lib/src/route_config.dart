@@ -623,7 +623,16 @@ abstract class RouteBaseConfig {
   }) {
     assert(!reader.isNull, 'reader should not be null');
     final InterfaceType type = reader.objectValue.type! as InterfaceType;
-    final String typeName = type.element.name;
+    final String? typeName = type.element.name;
+
+    if (typeName == null) {
+      throw InvalidGenerationSourceError(
+        'The @TypedGoRoute annotation must be one of: '
+        '@TypedGoRoute, @TypedRelativeGoRoute, @TypedShellRoute, '
+        '@TypedStatefulShellRoute, or @TypedStatefulShellBranch.',
+        element: element,
+      );
+    }
 
     if (isAncestorRelative && typeName == 'TypedGoRoute') {
       throw InvalidGenerationSourceError(
@@ -942,7 +951,7 @@ $routeDataClassName.$dataConvertionFunctionName(
 String _enumMapConst(InterfaceType type) {
   assert(type.isEnum);
 
-  final String enumName = type.element.name;
+  final String enumName = type.element.name!;
 
   final StringBuffer buffer = StringBuffer('const ${enumMapName(type)} = {');
 
