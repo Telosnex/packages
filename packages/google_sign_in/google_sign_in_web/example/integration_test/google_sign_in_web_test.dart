@@ -28,6 +28,16 @@ void main() {
   group('Constructor', () {
     const expectedClientId = '3xp3c73d_c113n7_1d';
 
+    testWidgets('Registration does not load the GIS SDK', (_) async {
+      GoogleSignInPlugin();
+      expect(
+        web.document.querySelector(
+          'script[src="https://accounts.google.com/gsi/client"]',
+        ),
+        isNull,
+      );
+    });
+
     testWidgets('Loads clientId when set in a meta', (_) async {
       final plugin = GoogleSignInPlugin(debugOverrideLoader: true);
 

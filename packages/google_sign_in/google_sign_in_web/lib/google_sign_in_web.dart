@@ -39,8 +39,8 @@ const String clientIdAttributeName = 'content';
 
 /// Implementation of the google_sign_in plugin for Web.
 class GoogleSignInPlugin extends GoogleSignInPlatform {
-  /// Constructs the plugin immediately and begins initializing it in the
-  /// background.
+  /// Constructs the plugin without contacting Google. The GIS SDK loads only
+  /// if [init] is called.
   ///
   /// For tests, the plugin can skip its loading process with [debugOverrideLoader],
   /// and the implementation of the underlying GIS SDK client through [debugOverrideGisSdkClient].
@@ -48,7 +48,8 @@ class GoogleSignInPlugin extends GoogleSignInPlatform {
     @visibleForTesting bool debugOverrideLoader = false,
     @visibleForTesting GisSdkClient? debugOverrideGisSdkClient,
     @visibleForTesting StreamController<AuthenticationEvent>? debugAuthenticationController,
-  }) : _debugOverrideGisSdkClient = debugOverrideGisSdkClient,
+  }) : _debugOverrideLoader = debugOverrideLoader,
+       _debugOverrideGisSdkClient = debugOverrideGisSdkClient,
        _authenticationController =
            debugAuthenticationController ?? StreamController<AuthenticationEvent>.broadcast() {
     autoDetectedClientId = web.document
@@ -56,16 +57,9 @@ class GoogleSignInPlugin extends GoogleSignInPlatform {
         ?.getAttribute(clientIdAttributeName);
 
     _registerButtonFactory();
-
-    if (debugOverrideLoader) {
-      _jsSdkLoadedFuture = Future<bool>.value(true);
-    } else {
-      _jsSdkLoadedFuture = loader.loadWebSdk();
-    }
   }
 
-  // A future that completes when the JS loader is done.
-  late Future<void> _jsSdkLoadedFuture;
+  final bool _debugOverrideLoader;
 
   /// A completer used to track whether [init] has finished.
   final Completer<void> _initCalled = Completer<void>();
@@ -121,7 +115,11 @@ class GoogleSignInPlugin extends GoogleSignInPlatform {
 
     assert(params.serverClientId == null, 'serverClientId is not supported on Web.');
 
-    await _jsSdkLoadedFuture;
+    // Flutter registers web plugins at app startup, even if Google Sign-In is
+    // unused. Do not load Google's third-party script until sign-in is used.
+    if (!_debugOverrideLoader) {
+      await loader.loadWebSdk();
+    }
 
     _gisSdkClient =
         _debugOverrideGisSdkClient ??
