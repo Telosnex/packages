@@ -171,7 +171,7 @@ Win32Window::MessageHandler(HWND hwnd, UINT const message, WPARAM const wparam,
 
       return 0;
     }
-    case WM_SIZE:
+    case WM_SIZE: {
       RECT rect = GetClientArea();
       if (child_content_ != nullptr) {
         // Size and position the child window.
@@ -179,6 +179,7 @@ Win32Window::MessageHandler(HWND hwnd, UINT const message, WPARAM const wparam,
                    rect.bottom - rect.top, TRUE);
       }
       return 0;
+    }
 
     case WM_ACTIVATE:
       if (child_content_ != nullptr) {
