@@ -31,10 +31,7 @@ jobs:
           persist-credentials: false
       - uses: Telosnex/telosnex_ci_tools/actions/setup-flutter@cba77fc0d4330f1bef81193c53cd7dd976f0ebcf # v0.5.3
       - uses: Telosnex/telosnex_ci_tools/actions/lint@cba77fc0d4330f1bef81193c53cd7dd976f0ebcf # v0.5.3
-      # No format check: the pinned commits of google_sign_in_web and
-      # shared_preferences_windows are not clean under the Dart formatter of
-      # the pinned Flutter (3.47.1, Dart 3.13), and reformatting them would
-      # move the pins. Analyze and the tests below still run.
+      # Format check skipped: pinned commits are not clean under Flutter 3.47.1 dart format.
       - name: Analyze google_sign_in_web
         run: |
           cd packages/google_sign_in/google_sign_in_web
