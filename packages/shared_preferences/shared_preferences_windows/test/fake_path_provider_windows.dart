@@ -16,7 +16,16 @@ class FakePathProviderWindows extends PathProviderPlatform implements PathProvid
   late VersionInfoQuerier versionInfoQuerier;
 
   @override
-  Future<String?> getApplicationSupportPath() async => r'C:\appsupport';
+  Future<String?> getApplicationSupportPath() async => supportPath;
+
+  @override
+  Future<String?> getApplicationCachePath() async => cachePath;
+
+  /// Roaming AppData stand-in.
+  String supportPath = r'C:\appsupport';
+
+  /// Local AppData stand-in.
+  String cachePath = r'C:\applocal';
 
   @override
   Future<String?> getTemporaryPath() async => null;

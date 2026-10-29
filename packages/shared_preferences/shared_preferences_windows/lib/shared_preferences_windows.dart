@@ -267,18 +267,78 @@ base class SharedPreferencesAsyncWindows extends SharedPreferencesAsyncPlatform 
 }
 
 /// Gets the file where the preferences are stored.
+///
+/// Telosnex fork: the file is in Local AppData (path_provider's cache path,
+/// `%LOCALAPPDATA%\<company>\<product>`), not Roaming AppData (the support
+/// path). Roaming profiles copy Roaming AppData to the user's other PCs and
+/// Folder Redirection shares it between PCs signed in at once; preferences
+/// often hold state that belongs to one PC. A file left in Roaming AppData by
+/// the upstream plugin is moved here once per process.
 Future<File?> _getLocalDataFile(
   String fileName, {
   FileSystem fs = const LocalFileSystem(),
   PathProviderWindows? pathProvider,
+}) {
+  final Map<String, Future<File?>> resolved =
+      _resolvedFiles[fs] ??= <String, Future<File?>>{};
+  return resolved[fileName] ??= _resolveLocalDataFile(
+    fileName,
+    fs: fs,
+    pathProvider: pathProvider ?? PathProviderWindows(),
+  );
+}
+
+/// Resolved files per file system, so the Roaming check runs once.
+final Expando<Map<String, Future<File?>>> _resolvedFiles =
+    Expando<Map<String, Future<File?>>>();
+
+Future<File?> _resolveLocalDataFile(
+  String fileName, {
+  required FileSystem fs,
+  required PathProviderWindows pathProvider,
 }) async {
-  pathProvider = pathProvider ?? PathProviderWindows();
-  final String? directory = await pathProvider.getApplicationSupportPath();
-  if (directory == null) {
+  final String? localDirectory = await pathProvider.getApplicationCachePath();
+  if (localDirectory == null) {
     return null;
   }
-  final String fileLocation = path.join(directory, '$fileName.json');
-  return fs.file(fileLocation);
+  // No path.canonicalize: it lowercases, and a redirected Roaming AppData can
+  // be on a case-sensitive share where the lowercased path does not exist.
+  final File local = fs.file(path.join(localDirectory, '$fileName.json'));
+  File? roaming;
+  try {
+    final String? roamingDirectory =
+        await pathProvider.getApplicationSupportPath();
+    if (roamingDirectory != null) {
+      roaming = fs.file(path.join(roamingDirectory, '$fileName.json'));
+      if (!path.equals(roaming.path, local.path)) {
+        await moveRoamingFile(roaming, local);
+      }
+    }
+  } catch (e) {
+    debugPrint('Moving $fileName.json to Local AppData failed: $e');
+    // Keep using the old file this run rather than starting empty.
+    if (roaming != null && !local.existsSync() && roaming.existsSync()) {
+      return roaming;
+    }
+  }
+  return local;
+}
+
+/// Moves [roaming] to [local]. If [local] already exists it wins and
+/// [roaming] is only deleted. Copies rather than renames, because a
+/// redirected Roaming AppData is often on another volume.
+@visibleForTesting
+Future<void> moveRoamingFile(File roaming, File local) async {
+  if (!roaming.existsSync()) {
+    return;
+  }
+  if (!local.existsSync()) {
+    local.parent.createSync(recursive: true);
+    final File tmp = local.fileSystem.file('${local.path}.tmp');
+    await roaming.copy(tmp.path);
+    await tmp.rename(local.path);
+  }
+  await roaming.delete();
 }
 
 /// Gets the preferences from the stored file.

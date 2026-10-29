@@ -4,6 +4,7 @@
 
 import 'dart:convert';
 
+import 'package:file/file.dart';
 import 'package:file/memory.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as path;
@@ -56,7 +57,7 @@ void main() {
   });
 
   Future<String> getFilePath() async {
-    final String? directory = await pathProvider.getApplicationSupportPath();
+    final String? directory = await pathProvider.getApplicationCachePath();
     return path.join(directory!, 'shared_preferences.json');
   }
 
@@ -228,5 +229,53 @@ void main() {
       GetAllParameters(filter: PreferencesFilter(prefix: '')),
     );
     expect(noValues, hasLength(0));
+  });
+
+  group('Roaming AppData to Local AppData', () {
+    File roamingFile() => fs.file(path.join(
+        (pathProvider as FakePathProviderWindows).supportPath,
+        'shared_preferences.json'));
+
+    test('moves a file left in Roaming AppData', () async {
+      roamingFile()
+        ..createSync(recursive: true)
+        ..writeAsStringSync('{"flutter.k":"v"}');
+
+      expect(
+          await getPreferences().getAll(), <String, Object>{'flutter.k': 'v'});
+      expect(await readTestFile(), '{"flutter.k":"v"}');
+      expect(roamingFile().existsSync(), isFalse);
+      expect(fs.file('${await getFilePath()}.tmp').existsSync(), isFalse);
+    });
+
+    test('an existing Local AppData file wins', () async {
+      await writeTestFile('{"flutter.k":"local"}');
+      roamingFile()
+        ..createSync(recursive: true)
+        ..writeAsStringSync('{"flutter.k":"roaming"}');
+
+      expect(await getPreferences().getAll(),
+          <String, Object>{'flutter.k': 'local'});
+      expect(roamingFile().existsSync(), isFalse);
+    });
+
+    test('writes go to Local AppData', () async {
+      await getPreferences().setValue('String', 'flutter.k', 'v');
+      expect(await readTestFile(), '{"flutter.k":"v"}');
+      expect(roamingFile().existsSync(), isFalse);
+    });
+
+    test('keeps the case of a mixed-case Roaming path', () async {
+      // MemoryFileSystem is case-sensitive, like some redirected shares.
+      (pathProvider as FakePathProviderWindows).supportPath =
+          r'\\Server\Share\MiXeD';
+      roamingFile()
+        ..createSync(recursive: true)
+        ..writeAsStringSync('{"flutter.k":"v"}');
+
+      expect(
+          await getPreferences().getAll(), <String, Object>{'flutter.k': 'v'});
+      expect(roamingFile().existsSync(), isFalse);
+    });
   });
 }
