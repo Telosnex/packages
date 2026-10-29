@@ -1,0 +1,84 @@
+name: Integration
+
+on:
+  push:
+    # ci/** branches run it too: a new workflow cannot be started by hand
+    # before it is on main.
+    branches: [main, 'ci/**']
+  schedule:
+    - cron: '41 5 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: integration-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  # shared_preferences_windows: its example app's integration test on Windows.
+  desktop-windows-x64:
+    name: Windows x64
+    runs-on: windows-2025
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: Telosnex/telosnex_ci_tools/actions/setup-flutter@cba77fc0d4330f1bef81193c53cd7dd976f0ebcf # v0.5.3
+      - name: Integration tests
+        uses: Telosnex/telosnex_ci_tools/actions/watch@cba77fc0d4330f1bef81193c53cd7dd976f0ebcf # v0.5.3
+        with:
+          # The first Windows build prints nothing for minutes.
+          idle-minutes: '15'
+          run: |
+            cd packages/shared_preferences/shared_preferences_windows/example
+            flutter pub get
+            flutter test integration_test/shared_preferences_test.dart -d windows -r expanded
+
+  # google_sign_in_web: its example app's integration tests in Chrome, the
+  # same tests compiled for each compiler. The jobs share the steps of the
+  # first (YAML anchor).
+  web-linux-chrome-dart2js:
+    name: Web Linux x64 Chrome dart2js
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      WASM: ''
+    steps: &web_steps
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: Telosnex/telosnex_ci_tools/actions/setup-flutter@cba77fc0d4330f1bef81193c53cd7dd976f0ebcf # v0.5.3
+      - name: Unit tests in Chrome
+        run: |
+          cd packages/google_sign_in/google_sign_in_web
+          flutter pub get
+          flutter test --platform chrome $WASM -r expanded test
+      - name: Integration tests in Chrome
+        uses: Telosnex/telosnex_ci_tools/actions/web-driver@cba77fc0d4330f1bef81193c53cd7dd976f0ebcf # v0.5.3
+        with:
+          browser: chrome
+          artifact-name: web-chrome-${{ env.WASM == '' && 'dart2js' || 'dart2wasm' }}-logs
+          working-directory: packages/google_sign_in/google_sign_in_web/example
+          idle-minutes: '15'
+          run: |
+            flutter pub get
+            for target in google_sign_in_web_test utils_test web_only_test flexible_size_html_element_view_test; do
+              flutter drive --driver=test_driver/integration_test.dart \
+                --target=integration_test/$target.dart \
+                -d web-server --browser-name=chrome --headless $WASM
+            done
+
+  web-linux-chrome-dart2wasm:
+    name: Web Linux x64 Chrome dart2wasm
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      WASM: --wasm
+    steps: *web_steps

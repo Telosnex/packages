@@ -1,0 +1,73 @@
+name: Unit
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    # ci/** branches run it too: a new workflow cannot be started by hand
+    # before it is on main.
+    branches: [main, 'ci/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: unit-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  unit:
+    name: Unit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: Telosnex/telosnex_ci_tools/actions/setup-flutter@cba77fc0d4330f1bef81193c53cd7dd976f0ebcf # v0.5.3
+      - uses: Telosnex/telosnex_ci_tools/actions/lint@cba77fc0d4330f1bef81193c53cd7dd976f0ebcf # v0.5.3
+      # The two packages this fork changes: google_sign_in_web and
+      # shared_preferences_windows. Other packages of the repository are not
+      # tested here.
+      - name: Format
+        run: |
+          git ls-files \
+            'packages/google_sign_in/google_sign_in_web/**.dart' \
+            'packages/shared_preferences/shared_preferences_windows/**.dart' |
+            while read -r f; do head -1 "$f" | grep -qiE '^// *generated' || echo "$f"; done |
+            xargs dart format --output=none --set-exit-if-changed
+      - name: Analyze google_sign_in_web
+        run: |
+          cd packages/google_sign_in/google_sign_in_web
+          flutter pub get
+          flutter analyze --fatal-infos
+      - name: Analyze shared_preferences_windows
+        run: |
+          cd packages/shared_preferences/shared_preferences_windows
+          flutter pub get
+          flutter analyze --fatal-infos
+      # test/ of google_sign_in_web uses package:web, so it runs in Chrome.
+      - name: Test google_sign_in_web
+        run: |
+          cd packages/google_sign_in/google_sign_in_web
+          flutter test --platform chrome -r expanded test
+
+  desktop-windows-x64:
+    name: Windows x64 unit
+    runs-on: windows-2025
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: Telosnex/telosnex_ci_tools/actions/setup-flutter@cba77fc0d4330f1bef81193c53cd7dd976f0ebcf # v0.5.3
+      - name: Test shared_preferences_windows
+        run: |
+          cd packages/shared_preferences/shared_preferences_windows
+          flutter pub get
+          flutter test -r expanded
