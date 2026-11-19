@@ -30,9 +30,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: Telosnex/telosnex_ci_tools/actions/setup-flutter@d807dca8c92f4b85be742a04601a47654f0e41a0 # v0.5.23
+      - uses: Telosnex/telosnex_ci_tools/actions/setup-flutter@0ab334b66d7bb8ff0f436b8e9739eb014ab35b79 # v0.5.24
       - name: Integration tests
-        uses: Telosnex/telosnex_ci_tools/actions/watch@d807dca8c92f4b85be742a04601a47654f0e41a0 # v0.5.23
+        uses: Telosnex/telosnex_ci_tools/actions/watch@0ab334b66d7bb8ff0f436b8e9739eb014ab35b79 # v0.5.24
         with:
           # The first Windows build prints nothing for minutes.
           idle-minutes: '15'
@@ -54,14 +54,14 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: Telosnex/telosnex_ci_tools/actions/setup-flutter@d807dca8c92f4b85be742a04601a47654f0e41a0 # v0.5.23
+      - uses: Telosnex/telosnex_ci_tools/actions/setup-flutter@0ab334b66d7bb8ff0f436b8e9739eb014ab35b79 # v0.5.24
       - name: Unit tests in Chrome
         run: |
           cd packages/google_sign_in/google_sign_in_web
           flutter pub get
           flutter test --platform chrome $WASM -r expanded test
       - name: Integration tests in Chrome
-        uses: Telosnex/telosnex_ci_tools/actions/web-driver@d807dca8c92f4b85be742a04601a47654f0e41a0 # v0.5.23
+        uses: Telosnex/telosnex_ci_tools/actions/web-driver@0ab334b66d7bb8ff0f436b8e9739eb014ab35b79 # v0.5.24
         with:
           browser: chrome
           artifact-name: web-chrome-${{ env.WASM == '' && 'dart2js' || 'dart2wasm' }}-logs
