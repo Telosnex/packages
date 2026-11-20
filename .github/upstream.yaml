@@ -6,7 +6,7 @@ sources:
   # commit is a week old.
   - name: flutter/packages
     branch: https://github.com/flutter/packages
-    pin: 9d6cf9ad383dae5fa26eff228dd1d4cb57a17af0
+    pin: 76015c14934734272aa8d93d06d39d49dc3c50ab
     lag_days: 7
     # The packages that the app takes from this fork.
     paths:

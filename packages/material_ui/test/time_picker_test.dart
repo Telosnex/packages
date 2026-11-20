@@ -5,7 +5,6 @@
 // This file is run as part of a reduced test set in CI on Mac and Windows
 // machines.
 @Tags(<String>['reduced-test-set'])
-@TestOn('!chrome')
 library;
 
 import 'dart:async';
@@ -920,7 +919,10 @@ void main() {
         // Open the dialog.
         await tester.tap(find.byType(ElevatedButton));
         await tester.pumpAndSettle();
-        expect(tester.widget<ModalBarrier>(find.byType(ModalBarrier).last).color, Colors.black54);
+        expect(
+          tester.widget<ModalBarrier>(find.byType(ModalBarrier).last).color,
+          Theme.of(tester.element(find.byType(ElevatedButton))).colorScheme.scrim.withAlpha(0x52),
+        );
 
         // Dismiss the dialog.
         await tester.tapAt(const Offset(10.0, 10.0));
@@ -2354,6 +2356,10 @@ void main() {
       );
     });
 
+    // Skipped on the web because routes pushed with Navigator.restorablePush
+    // (used by _TimePickerLauncher) are not restorable there: the framework
+    // can't serialize the route builder without PluginUtilities, so the
+    // picker dialog is gone after restartAndRestore.
     group('Time picker - Restoration (${materialType.name})', () {
       testWidgets('Time Picker state restoration test - dial mode', (WidgetTester tester) async {
         TimeOfDay? result;
@@ -2461,7 +2467,7 @@ void main() {
         await finishPicker(tester);
         expect(result, equals(const TimeOfDay(hour: 6, minute: 45)));
       });
-    });
+    }, skip: kIsWeb); // [intended] PluginUtilities is not supported on the web.
 
     group('Time picker - emptyInitialInput (${materialType.name})', () {
       testWidgets('Fields are empty and show correct hints when emptyInitialInput is true', (
